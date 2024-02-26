@@ -2,7 +2,7 @@ package main
 
 import (
 	"easynet"
-	"fmt"
+	"log"
 	"time"
 )
 
@@ -24,21 +24,21 @@ func main() {
 	})
 
 	r.Use(func(req easynet.IRequest) {
-		fmt.Println("global middleware")
+		log.Println("global middleware")
 	})
 
 	group := r.Group("group", func(req easynet.IRequest) {
-		fmt.Println("group middleware")
+		log.Println("group middleware")
 	})
 
 	{
 		group.Add(HelloType, func(req easynet.IRequest) {
-			fmt.Println("hello world")
+			log.Println("hello world")
 		})
 	}
 
 	r.Add(PingType, func(req easynet.IRequest) {
-		fmt.Println("ping,msg=", string(req.GetData()))
+		log.Println("ping,msg=", string(req.GetData()))
 	})
 
 	r.Run()
