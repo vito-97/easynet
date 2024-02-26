@@ -22,6 +22,14 @@ func main() {
 	r := easynet.DefaultClient(func(c *easynet.ClientOption) {
 		c.OnConnStart = append(c.OnConnStart, func(connection easynet.IConnection) {
 			connection.SendMsg(HelloType, []byte("hello"))
+			helloData := []byte("hello everyone~！")
+			msg := easynet.NewMessageWithType(HelloType, helloData)
+			pack := easynet.NewDataPack()
+
+			bytes, _ := pack.Pack(msg)
+			b := append(bytes, bytes...)
+			connection.Send(b)
+
 			go func() {
 				for {
 					connection.SendMsg(PingType, []byte("hello server"))

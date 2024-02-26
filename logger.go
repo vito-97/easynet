@@ -98,7 +98,7 @@ func LoggerWithConfig(config LogConfig) HandlerFunc {
 
 func defaultLogFormatter(params LogFormatterParams) string {
 	return fmt.Sprintf(
-		"[EasyNet] %v | %10v | %15s | type %d\n%s",
+		"[EasyNet] %v | %10v | %15s | type %d\n%s\n",
 		params.TimeStamp.Format("2006-01-02 15:04:05"),
 		params.Latency,
 		params.ClientIP,
