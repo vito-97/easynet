@@ -62,7 +62,8 @@ type ClientOption struct {
 
 type Client struct {
 	Switch
-	name string
+	restart Switch
+	name    string
 
 	conn IConnection
 
@@ -87,22 +88,29 @@ type Client struct {
 
 func (c *Client) Run() {
 	if c.isStarted() || !c.setStarted() {
-		debugPrint("client name [%s] is started!\n", c.name)
+		debugPrint("client name [%s] is running!\n", c.name)
 		return
 	}
 
-	c.worker.Start()
+	if !c.restart.isStarted() {
+		c.worker.Start()
+	}
 
 	go c.start()
 }
 
 func (c *Client) Restart() {
+	if c.restart.isStarted() || !c.restart.setStarted() {
+		debugPrint("client name [%s] is restarting!\n", c.name)
+		return
+	}
 	c.Stop()
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	c.ctx = ctx
 	c.cancel = cancelFunc
 	c.reset()
 	c.Run()
+	c.restart.reset()
 }
 
 func (c *Client) start() {
@@ -139,7 +147,9 @@ func (c *Client) Stop() {
 	if !c.setStopped() {
 		return
 	}
-	c.worker.Stop()
+	if !c.restart.isStarted() {
+		c.worker.Stop()
+	}
 	c.cancel()
 }
 

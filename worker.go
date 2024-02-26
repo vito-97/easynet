@@ -2,6 +2,7 @@ package easynet
 
 import (
 	"context"
+	"reflect"
 	"sync"
 )
 
@@ -81,7 +82,20 @@ func (w *Worker) Start() {
 
 	w.free = free
 
-	w.handlers = append(w.handlers, BindRouterHandler(w.routerMgr))
+	if !w.bindRouterHandlerExists() {
+		w.handlers = append(w.handlers, BindRouterHandler(w.routerMgr))
+	}
+}
+
+// bindRouterHandlerExists 绑定路由的方法是否存在
+func (w *Worker) bindRouterHandlerExists() bool {
+	for _, fn := range w.handlers {
+		if reflect.ValueOf(fn).Pointer() == reflect.ValueOf(BindRouterHandler(w.routerMgr)).Pointer() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (w *Worker) Stop() {
