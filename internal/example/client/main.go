@@ -1,8 +1,8 @@
 package main
 
 import (
-	"easynet"
 	"fmt"
+	"github.com/vito-97/easynet"
 	"log"
 	"os"
 	"os/signal"
@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	HelloType = iota + 1
-	PingType
+	PingType = iota + 1
+	HelloType
 	DebugType
 )
 

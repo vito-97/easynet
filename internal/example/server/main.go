@@ -1,14 +1,14 @@
 package main
 
 import (
-	"easynet"
+	"github.com/vito-97/easynet"
 	"log"
 	"time"
 )
 
 const (
-	HelloType = iota + 1
-	PingType
+	PingType = iota + 1
+	HelloType
 )
 
 func main() {
