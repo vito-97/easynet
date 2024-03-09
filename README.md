@@ -65,7 +65,7 @@ func main() {
 
 ```
 
-启动服务器
+#### 启动服务器
 
 ```bash
 $ go run server.go 
@@ -133,7 +133,7 @@ func main() {
 
 ```
 
-启动客户端
+#### 启动客户端
 
 ```bash
 $ go run client.go 
@@ -165,7 +165,7 @@ ping
 ping
 ```
 
-###EasyNet配置文件
+### EasyNet配置文件
 
 ```json
 {
