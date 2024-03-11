@@ -114,7 +114,7 @@ func (w *Worker) Stop() {
 
 func (w *Worker) listenQueue(i uint32) {
 	q := w.queue[i]
-	for {
+	for !w.isStopped() {
 		request, ok := <-q
 		if !ok {
 			debugPrint("worker id %d chan is closed\n", i)

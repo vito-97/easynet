@@ -124,7 +124,7 @@ func (s *Server) start() {
 	}
 
 	go func() {
-		for {
+		for !s.isStopped() {
 			if s.connMgr.Len() >= GlobalConfig.MaxConn {
 				delay.Sleep()
 				continue
