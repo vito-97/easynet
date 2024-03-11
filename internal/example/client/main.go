@@ -32,7 +32,7 @@ func main() {
 			connection.Send(b)
 
 			go func() {
-				for {
+				for !connection.IsStopped() {
 					connection.SendMsg(PingType, []byte("hello server"))
 					time.Sleep(time.Second)
 				}

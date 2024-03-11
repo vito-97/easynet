@@ -13,6 +13,7 @@ import (
 type IConnection interface {
 	Start()
 	Stop()
+	IsStopped() bool
 	StartReader()
 	StartWriter()
 
@@ -118,6 +119,10 @@ func (c *Connection) Stop() {
 	_ = c.conn.Close()
 
 	debugPrint("conn stop, id = %d\n", c.id)
+}
+
+func (c *Connection) IsStopped() bool {
+	return c.isStopped()
 }
 
 func (c *Connection) StartReader() {

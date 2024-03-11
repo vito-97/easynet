@@ -15,7 +15,7 @@ func main() {
 	r := easynet.Default(func(s *easynet.ServerOption) {
 		s.OnConnStart = append(s.OnConnStart, func(connection easynet.IConnection) {
 			go func() {
-				for {
+				for !connection.IsStopped() {
 					connection.SendMsg(PingType, []byte("hello client"))
 					time.Sleep(time.Second)
 				}

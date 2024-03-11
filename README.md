@@ -38,7 +38,7 @@ func main() {
 
 	r.SetOnConnStart(func(connection easynet.IConnection) {
 		go func() {
-			for {
+			for !connection.IsStopped() {
 				connection.SendMsg(PingType, []byte("ping"))
 				time.Sleep(1 * time.Second)
 			}
