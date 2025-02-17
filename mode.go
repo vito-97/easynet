@@ -2,15 +2,17 @@ package easynet
 
 import "os"
 
-const EnvMode = "EASY_NET_MODE"
+type EnvMode string
+
+const EnvModeKey = "EASY_NET_MODE"
 
 const (
 	// DebugMode debug模式
-	DebugMode = "debug"
+	DebugMode EnvMode = "debug"
 	// ReleaseMode 发行模式
-	ReleaseMode = "release"
+	ReleaseMode EnvMode = "release"
 	// TestMode 测试模式
-	TestMode = "test"
+	TestMode EnvMode = "test"
 )
 
 var (
@@ -18,11 +20,11 @@ var (
 )
 
 func init() {
-	mode := os.Getenv(EnvMode)
+	mode := EnvMode(os.Getenv(EnvModeKey))
 	SetMode(mode)
 }
 
-func SetMode(value string) {
+func SetMode(value EnvMode) {
 	if value == "" {
 		value = DebugMode
 	}
@@ -38,6 +40,6 @@ func SetMode(value string) {
 	modeName = value
 }
 
-func Mode() string {
+func Mode() EnvMode {
 	return modeName
 }

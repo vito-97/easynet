@@ -11,19 +11,19 @@ type Config struct {
 	Host       string // 当前服务器主机IP
 	TCPPort    int    // 当前服务器主机监听端口号
 
-	Version          string // 当前版本号
-	MaxPacketSize    uint32 // 读写数据包的最大值
-	MaxConn          int    // 当前服务器主机允许的最大连接个数
-	WorkerPoolSize   uint32 // 业务工作Worker池的数量
-	MaxWorkerTaskLen uint32 // 业务工作Worker对应负责的任务队列最大任务存储数量
-	WorkerMode       string // 为连接分配worker的方式
-	MaxMsgChanLen    uint32 // 发送消息的缓冲最大长度
-	IOReadBuffSize   uint32 // 每次IO最大的读取长度
+	Version          string     // 当前版本号
+	MaxPacketSize    uint32     // 读写数据包的最大值
+	MaxConn          int        // 当前服务器主机允许的最大连接个数
+	WorkerPoolSize   uint32     // 业务工作Worker池的数量
+	MaxWorkerTaskLen uint32     // 业务工作Worker对应负责的任务队列最大任务存储数量
+	WorkerMode       WorkerMode // 为连接分配worker的方式
+	MaxMsgChanLen    uint32     // 发送消息的缓冲最大长度
+	IOReadBuffSize   uint32     // 每次IO最大的读取长度
 }
 
 func (c *Config) Reload() {
 	configFilePath := GetConfigFilePath()
-	if confFileExists, _ := PathExists(configFilePath); !confFileExists {
+	if confFileExists, _ := pathExists(configFilePath); !confFileExists {
 		debugPrint("config file %s is not exist! \n You can set config file by setting the environment variable %s, like export %s = xxx/xxx/easynet.conf\n", configFilePath, EnvConfigFilePathKey, EnvConfigFilePathKey)
 		return
 	}
@@ -37,18 +37,6 @@ func (c *Config) Reload() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-// PathExists 判断一个文件是否存在
-func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
 }
 
 var GlobalConfig *Config

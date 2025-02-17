@@ -6,9 +6,12 @@ import (
 	"sync"
 )
 
+// WorkerMode worker模式
+type WorkerMode string
+
 const (
-	WorkerModeHash = "hash" //默认使用取余的方式
-	WorkerModeBind = "bind" //为每个连接分配一个worker
+	WorkerModeHash WorkerMode = "hash" //默认使用取余的方式
+	WorkerModeBind WorkerMode = "bind" //为每个连接分配一个worker
 )
 
 type IWorker interface {
@@ -26,7 +29,7 @@ type IWorker interface {
 type Worker struct {
 	Switch
 	size     uint32
-	mode     string
+	mode     WorkerMode
 	taskLen  uint32
 	handlers HandlersChain
 
