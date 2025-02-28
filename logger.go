@@ -79,18 +79,18 @@ func LoggerWithConfig(config LogConfig) HandlerFunc {
 
 		req.Next()
 
-		if _, ok := skip[req.GetMsgType()]; ok || (config.Skip != nil && config.Skip(req)) {
+		if _, ok := skip[req.MsgType()]; ok || (config.Skip != nil && config.Skip(req)) {
 			return
 		}
 
 		params := LogFormatterParams{
 			Request: req,
-			Type:    req.GetMsgType(),
+			Type:    req.MsgType(),
 		}
 
 		params.TimeStamp = time.Now()
 		params.Latency = params.TimeStamp.Sub(start)
-		params.ClientIP = req.GetConnection().GetRemoteAddrString()
+		params.ClientIP = req.Connection().GetConnection().RemoteAddr().String()
 
 		fmt.Fprint(output, formatter(params))
 	}
@@ -103,6 +103,6 @@ func defaultLogFormatter(params LogFormatterParams) string {
 		params.Latency,
 		params.ClientIP,
 		params.Type,
-		params.Request.GetData(),
+		params.Request.Data(),
 	)
 }

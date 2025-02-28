@@ -27,14 +27,14 @@ type ConnectionManager struct {
 func (c *ConnectionManager) Add(connection IConnection) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	id := connection.GetID()
+	id := connection.ID()
 	c.list[id] = connection
 }
 
 func (c *ConnectionManager) Delete(connection IConnection) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	id := connection.GetID()
+	id := connection.ID()
 	if _, ok := c.list[id]; !ok {
 		return
 	}
@@ -78,7 +78,7 @@ func (c *ConnectionManager) DeleteByUid(u uint64) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	for _, conn := range collect {
-		delete(c.list, conn.GetID())
+		delete(c.list, conn.ID())
 	}
 }
 

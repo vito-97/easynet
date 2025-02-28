@@ -14,11 +14,9 @@ type IConnection interface {
 	Start()
 	Stop()
 	IsStopped() bool
-	StartReader()
-	StartWriter()
 
-	GetID() uint64
-	GetName() string
+	ID() uint64
+	Name() string
 
 	Send(data []byte) error
 	SendToQueue(data []byte) error
@@ -35,16 +33,6 @@ type IConnection interface {
 	SetWorkerId(id uint32)
 
 	GetConnection() net.Conn
-	GetTcpConnection() net.Conn
-
-	GetRemoteAddr() net.Addr
-	GetLocalAddr() net.Addr
-	GetLocalAddrString() string
-	GetRemoteAddrString() string
-
-	SetProperty(key string, value interface{})
-	GetProperty(key string) (interface{}, error)
-	DeleteProperty(key string) bool
 
 	Content() context.Context
 }
@@ -96,7 +84,7 @@ func (c *Connection) Start() {
 	}()
 
 	c.callOnConnStart()
-	go c.StartReader()
+	go c.startReader()
 }
 
 func (c *Connection) Stop() {
@@ -125,7 +113,7 @@ func (c *Connection) IsStopped() bool {
 	return c.isStopped()
 }
 
-func (c *Connection) StartReader() {
+func (c *Connection) startReader() {
 	defer c.Stop()
 	defer func() {
 		if err := recover(); err != nil {
@@ -173,7 +161,7 @@ func (c *Connection) StartReader() {
 	}
 }
 
-func (c *Connection) StartWriter() {
+func (c *Connection) startWriter() {
 	if !c.writerSwitch.isStarted() {
 		debugPrint("writer goroutine %d start fail, must be lazy start\n", c.id)
 		return
@@ -272,15 +260,15 @@ func (c *Connection) initWriter() {
 	if c.msgChan == nil && !c.writerSwitch.isStarted() && c.writerSwitch.setStarted() {
 		c.msgChan = make(chan []byte, GlobalConfig.MaxMsgChanLen)
 
-		go c.StartWriter()
+		go c.startWriter()
 	}
 }
 
-func (c *Connection) GetID() uint64 {
+func (c *Connection) ID() uint64 {
 	return c.id
 }
 
-func (c *Connection) GetName() string {
+func (c *Connection) Name() string {
 	return c.name
 }
 
@@ -295,55 +283,6 @@ func (c *Connection) GetUid() uint64 {
 func (c *Connection) GetConnection() net.Conn {
 	return c.conn
 }
-
-func (c *Connection) GetTcpConnection() net.Conn {
-	return c.conn
-}
-
-func (c *Connection) GetRemoteAddr() net.Addr {
-	return c.conn.RemoteAddr()
-}
-
-func (c *Connection) GetLocalAddr() net.Addr {
-	return c.conn.LocalAddr()
-}
-
-func (c *Connection) GetLocalAddrString() string {
-	return c.conn.LocalAddr().String()
-}
-
-func (c *Connection) GetRemoteAddrString() string {
-	return c.conn.RemoteAddr().String()
-}
-
-func (c *Connection) SetProperty(key string, value interface{}) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.property[key] = value
-}
-
-func (c *Connection) GetProperty(key string) (interface{}, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	v, ok := c.property[key]
-
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("property key [%s] is undefined", key))
-	}
-
-	return v, nil
-}
-
-func (c *Connection) DeleteProperty(key string) bool {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	_, ok := c.property[key]
-	if ok {
-		delete(c.property, key)
-	}
-	return ok
-}
-
 func (c *Connection) GetWorker() IWorker {
 	return c.worker
 }
@@ -385,13 +324,13 @@ func (c *Connection) callOnConnStop() {
 func newConnection(server IServer, id uint64, conn net.Conn) *Connection {
 	c := &Connection{
 		id:              id,
-		name:            server.ServerName(),
+		name:            server.Name(),
 		conn:            conn,
-		worker:          server.GetWorker(),
+		worker:          server.Worker(),
 		useWorkerStatus: true,
 	}
 
-	frameDecode := server.GetFrameDecode()
+	frameDecode := server.FrameDecode()
 
 	if frameDecode != nil {
 		c.fd = frameDecode.New()
@@ -399,7 +338,7 @@ func newConnection(server IServer, id uint64, conn net.Conn) *Connection {
 
 	ctx, cancelFunc := context.WithCancel(server.Context())
 
-	c.dp = server.GetDataPack()
+	c.dp = server.DataPack()
 	c.onConnStart = server.GetOnConnStart()
 	c.onConnStop = server.GetOnConnStop()
 	c.ctx = ctx

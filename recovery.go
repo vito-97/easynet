@@ -51,7 +51,7 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) HandlerFunc {
 				if logger != nil {
 					s := stack(3)
 
-					data := req.GetData()
+					data := req.Data()
 
 					logger.Printf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
 						timeFormat(time.Now()), data, err, s, reset)

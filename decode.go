@@ -14,66 +14,66 @@ const TLVHeaderSize = TLVTypeSize + TLVLengthSize //表示TLV空包长度
 
 type IDecode interface {
 	Handler() HandlerFunc
-	GetTag() uint32
-	GetLength() uint32
-	GetValue() []byte
+	Tag() uint32
+	Length() uint32
+	Value() []byte
 	Decode(b []byte) IDecode
-	GetLengthField() *LengthField
+	LengthField() *LengthField
 }
 
 type TLVDecode struct {
-	Tag    uint32
-	Length uint32
-	Value  []byte
+	tag    uint32
+	length uint32
+	value  []byte
 
 	lengthField *LengthField
 }
 
 func (t *TLVDecode) Handler() HandlerFunc {
 	return func(req IRequest) {
-		msg := req.GetMessage()
+		msg := req.Message()
 
 		if msg == nil {
 			return
 		}
 
-		data := msg.GetData()
+		data := msg.Data()
 
 		if len(data) < TLVHeaderSize {
 			return
 		}
 
 		dc := t.Decode(data)
-		msg.SetType(dc.GetTag())
-		msg.SetLength(dc.GetLength())
-		msg.SetData(dc.GetValue())
+		msg.SetType(dc.Tag())
+		msg.SetLength(dc.Length())
+		msg.SetData(dc.Value())
 	}
 }
 
-func (t *TLVDecode) GetTag() uint32 {
-	return t.Tag
+func (t *TLVDecode) Tag() uint32 {
+	return t.tag
 }
 
-func (t *TLVDecode) GetLength() uint32 {
-	return t.Length
+func (t *TLVDecode) Length() uint32 {
+	return t.length
 }
 
-func (t *TLVDecode) GetValue() []byte {
-	return t.Value
+func (t *TLVDecode) Value() []byte {
+	return t.value
 }
 
 func (t *TLVDecode) Decode(b []byte) IDecode {
 	d := &TLVDecode{}
-	d.Tag = binary.BigEndian.Uint32(b[0:4])
-	d.Length = binary.BigEndian.Uint32(b[4:8])
-	d.Value = make([]byte, d.Length)
+	d.tag = binary.BigEndian.Uint32(b[0:4])
+	d.length = binary.BigEndian.Uint32(b[4:8])
+	d.value = make([]byte, d.length)
 
 	//读取value内容
-	binary.Read(bytes.NewBuffer(b[8:8+d.Length]), binary.BigEndian, d.Value)
+	binary.Read(bytes.NewBuffer(b[8:8+d.length]), binary.BigEndian, d.value)
 	return d
 }
 
-func (t *TLVDecode) GetLengthField() *LengthField {
+func (t *TLVDecode) LengthField() *LengthField {
 	return t.lengthField
 }
 

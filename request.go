@@ -6,13 +6,12 @@ import "math"
 const abortIndex int8 = math.MaxInt8 >> 1
 
 type IRequest interface {
-	GetConnection() IConnection
-	GetTcpConnection() IConnection
+	Connection() IConnection
 
-	GetData() []byte
-	GetMsgType() uint32
+	Data() []byte
+	MsgType() uint32
 
-	GetMessage() IMessage
+	Message() IMessage
 
 	//SetHandler 绑定该请求需要执行的所有函数
 	SetHandler(handlers HandlersChain)
@@ -32,23 +31,19 @@ type Request struct {
 	message    IMessage
 }
 
-func (r *Request) GetConnection() IConnection {
+func (r *Request) Connection() IConnection {
 	return r.connection
 }
 
-func (r *Request) GetTcpConnection() IConnection {
-	return r.connection
+func (r *Request) Data() []byte {
+	return r.message.Data()
 }
 
-func (r *Request) GetData() []byte {
-	return r.message.GetData()
+func (r *Request) MsgType() uint32 {
+	return r.message.Type()
 }
 
-func (r *Request) GetMsgType() uint32 {
-	return r.message.GetType()
-}
-
-func (r *Request) GetMessage() IMessage {
+func (r *Request) Message() IMessage {
 	return r.message
 }
 

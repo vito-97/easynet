@@ -16,7 +16,7 @@ const (
 )
 
 func Debug(req easynet.IRequest) {
-	fmt.Println("debug打印", string(req.GetData()))
+	fmt.Println("debug打印", string(req.Data()))
 }
 
 func main() {
@@ -55,7 +55,7 @@ func main() {
 	}
 
 	r.Add(PingType, func(req easynet.IRequest) {
-		log.Println("ping,msg=", string(req.GetData()))
+		log.Println("ping,msg=", string(req.Data()))
 	})
 
 	r.Add(DebugType, Debug)

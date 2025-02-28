@@ -38,7 +38,7 @@ func main() {
 	}
 
 	r.Add(PingType, func(req easynet.IRequest) {
-		log.Println("ping,msg=", string(req.GetData()))
+		log.Println("ping,msg=", string(req.Data()))
 	})
 
 	r.Run()

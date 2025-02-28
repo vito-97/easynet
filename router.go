@@ -12,15 +12,15 @@ type IRouterGroup interface {
 	Use(handlers ...HandlerFunc) IRouterGroup
 	// Group 分组
 	Group(name string, handlers ...HandlerFunc) IRouterGroup
-	// GetMiddleware 获取中间件
-	GetMiddleware() []HandlerFunc
-	// GetManager 获取路由管理
-	GetManager() IRouterManager
+	// Middleware 获取中间件
+	Middleware() []HandlerFunc
+	// Manager 获取路由管理
+	Manager() IRouterManager
 }
 
 type IRouterManager interface {
 	IRouterGroup
-	GetHandlerFunc(t uint32) []HandlerFunc
+	GetHandlers(t uint32) []HandlerFunc
 }
 
 type RouterManager struct {
@@ -63,7 +63,7 @@ func (r *RouterManager) Group(name string, handlers ...HandlerFunc) IRouterGroup
 	return rg
 }
 
-func (r *RouterManager) GetHandlerFunc(t uint32) []HandlerFunc {
+func (r *RouterManager) GetHandlers(t uint32) []HandlerFunc {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -92,11 +92,11 @@ func (r *RouterGroup) Group(name string, handlers ...HandlerFunc) IRouterGroup {
 	return rg
 }
 
-func (r *RouterGroup) GetMiddleware() []HandlerFunc {
+func (r *RouterGroup) Middleware() []HandlerFunc {
 	return r.middleware
 }
 
-func (r *RouterGroup) GetManager() IRouterManager {
+func (r *RouterGroup) Manager() IRouterManager {
 	return r.mgr
 }
 

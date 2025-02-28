@@ -17,10 +17,10 @@ type IServer interface {
 
 	Stop()
 	Run()
-	GetWorker() IWorker
-	ServerName() string
+	Worker() IWorker
+	Name() string
 
-	GetConnectionManager() IConnectionManager
+	ConnectionManager() IConnectionManager
 
 	SetOnConnStart(callbacks ...ConnCallback)
 	GetOnConnStart() []ConnCallback
@@ -29,14 +29,14 @@ type IServer interface {
 
 	Context() context.Context
 
-	GetDataPack() IDataPack
-	GetDecode() IDecode
-	GetFrameDecode() IFrameDecode
+	DataPack() IDataPack
+	Decode() IDecode
+	FrameDecode() IFrameDecode
 	SetDataPack(dp IDataPack)
 	SetDecode(dc IDecode)
 	SetFrameDecode(fd IFrameDecode)
 
-	GetRouterManager() IRouterManager
+	RouterManager() IRouterManager
 }
 
 type ServerOptionFunc = func(s *ServerOption)
@@ -44,8 +44,8 @@ type ServerOptionFunc = func(s *ServerOption)
 type ServerOption struct {
 	Name string
 
-	IP      string
-	TCPPort int
+	IP   string
+	Port int
 
 	// 路由管理
 	RouterManager IRouterManager
@@ -71,8 +71,8 @@ type Server struct {
 	Switch
 	name string
 
-	IP      string
-	TCPPort int
+	ip   string
+	port int
 
 	// 路由管理
 	IRouterManager
@@ -117,7 +117,7 @@ func (s *Server) Run() {
 
 func (s *Server) start() {
 	var delay Delay
-	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.IP, s.TCPPort))
+	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.ip, s.port))
 
 	if err != nil {
 		panic(fmt.Sprintf("server name [%s] listen error:%v", s.name, err))
@@ -180,11 +180,11 @@ func (s *Server) Stop() {
 	s.cancel()
 }
 
-func (s *Server) ServerName() string {
+func (s *Server) Name() string {
 	return s.name
 }
 
-func (s *Server) GetConnectionManager() IConnectionManager {
+func (s *Server) ConnectionManager() IConnectionManager {
 	return s.connMgr
 }
 
@@ -208,15 +208,15 @@ func (s *Server) GetOnConnStop() []ConnCallback {
 	return s.onConnStop
 }
 
-func (s *Server) GetDataPack() IDataPack {
+func (s *Server) DataPack() IDataPack {
 	return s.dp
 }
 
-func (s *Server) GetDecode() IDecode {
+func (s *Server) Decode() IDecode {
 	return s.dc
 }
 
-func (s *Server) GetFrameDecode() IFrameDecode {
+func (s *Server) FrameDecode() IFrameDecode {
 	return s.fd
 }
 
@@ -236,11 +236,11 @@ func (s *Server) Context() context.Context {
 	return s.ctx
 }
 
-func (s *Server) GetWorker() IWorker {
+func (s *Server) Worker() IWorker {
 	return s.worker
 }
 
-func (s *Server) GetRouterManager() IRouterManager {
+func (s *Server) RouterManager() IRouterManager {
 	return s
 }
 
@@ -248,11 +248,11 @@ func New(optionFunc ...ServerOptionFunc) *Server {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	opts := &ServerOption{
-		Name:    GlobalConfig.Name,
-		IP:      GlobalConfig.Host,
-		TCPPort: GlobalConfig.TCPPort,
-		Ctx:     ctx,
-		Cancel:  cancelFunc,
+		Name:   GlobalConfig.Name,
+		IP:     GlobalConfig.Host,
+		Port:   GlobalConfig.Port,
+		Ctx:    ctx,
+		Cancel: cancelFunc,
 	}
 
 	for _, fn := range optionFunc {
@@ -272,7 +272,7 @@ func New(optionFunc ...ServerOptionFunc) *Server {
 	}
 
 	if opts.FrameDecode == nil {
-		opts.FrameDecode = NewFrameDecode(*opts.Decode.GetLengthField())
+		opts.FrameDecode = NewFrameDecode(*opts.Decode.LengthField())
 	}
 
 	if opts.DataPack == nil {
@@ -286,8 +286,8 @@ func New(optionFunc ...ServerOptionFunc) *Server {
 
 	s := &Server{
 		name:           opts.Name,
-		IP:             opts.IP,
-		TCPPort:        opts.TCPPort,
+		ip:             opts.IP,
+		port:           opts.Port,
 		worker:         opts.Worker,
 		IRouterManager: opts.RouterManager,
 		onConnStart:    opts.OnConnStart,
@@ -330,7 +330,7 @@ func ServerWithIP(ip string) ServerOptionFunc {
 
 func ServerWithPort(port int) ServerOptionFunc {
 	return func(c *ServerOption) {
-		c.TCPPort = port
+		c.Port = port
 	}
 }
 

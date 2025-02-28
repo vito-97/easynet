@@ -231,7 +231,7 @@ func NewClient(optionFunc ...ClientOptionFunc) IClient {
 	opts := &ClientOption{
 		Name:    GlobalConfig.ClientName,
 		IP:      GlobalConfig.Host,
-		TCPPort: GlobalConfig.TCPPort,
+		TCPPort: GlobalConfig.Port,
 		Ctx:     ctx,
 		Cancel:  cancelFunc,
 	}
@@ -253,7 +253,7 @@ func NewClient(optionFunc ...ClientOptionFunc) IClient {
 	}
 
 	if opts.FrameDecode == nil {
-		opts.FrameDecode = NewFrameDecode(*opts.Decode.GetLengthField())
+		opts.FrameDecode = NewFrameDecode(*opts.Decode.LengthField())
 	}
 
 	if opts.DataPack == nil {

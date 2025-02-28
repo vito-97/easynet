@@ -130,7 +130,7 @@ func (w *Worker) listenQueue(i uint32) {
 
 // sendQueue 发送到chan队列中
 func (w *Worker) sendQueue(request IRequest) {
-	workerId := request.GetConnection().GetWorkerId()
+	workerId := request.Connection().GetWorkerId()
 	w.queue[workerId] <- request
 }
 
@@ -156,7 +156,7 @@ func (w *Worker) Use(conn IConnection) {
 	if w.size == 0 {
 		workerId = 0
 	} else {
-		workerId = uint32(conn.GetID() % uint64(w.size))
+		workerId = uint32(conn.ID() % uint64(w.size))
 	}
 
 	conn.SetWorkerId(workerId)
@@ -182,7 +182,7 @@ func (w *Worker) Free(conn IConnection) {
 
 func (w *Worker) Execute(req IRequest) {
 	// 需要队列处理
-	if w.size > 0 && req.GetConnection().GetUseWorkerStatus() {
+	if w.size > 0 && req.Connection().GetUseWorkerStatus() {
 		w.sendQueue(req)
 	} else {
 		go w.dispatch(req)
@@ -193,7 +193,7 @@ func (w *Worker) Execute(req IRequest) {
 func (w *Worker) dispatch(req IRequest) {
 	defer func() {
 		if err := recover(); err != nil {
-			debugPrint("worker dispatch error conn id = %d, type = %d, data = %s, error = %s\n", req.GetConnection().GetID(), req.GetMsgType(), req.GetData(), err)
+			debugPrint("worker dispatch error conn id = %d, type = %d, data = %s, error = %s\n", req.Connection().ID(), req.MsgType(), req.Data(), err)
 		}
 	}()
 
@@ -207,7 +207,7 @@ func (w *Worker) dispatch(req IRequest) {
 // BindRouterHandler 绑定路由中间件
 func BindRouterHandler(routerMgr IRouterManager) HandlerFunc {
 	return func(req IRequest) {
-		req.SetHandler(routerMgr.GetHandlerFunc(req.GetMsgType()))
+		req.SetHandler(routerMgr.GetHandlers(req.MsgType()))
 	}
 }
 

@@ -9,7 +9,7 @@ type Config struct {
 	Name       string // 当前服务器名称
 	ClientName string // 当前客户端名称
 	Host       string // 当前服务器主机IP
-	TCPPort    int    // 当前服务器主机监听端口号
+	Port       int    // 当前服务器主机监听端口号
 
 	Version          string     // 当前版本号
 	MaxPacketSize    uint32     // 读写数据包的最大值
@@ -46,7 +46,7 @@ func init() {
 		Name:       "EasyNet Server",
 		ClientName: "EasyNet Client",
 		Host:       "0.0.0.0",
-		TCPPort:    8899,
+		Port:       8899,
 
 		Version: "v1.0",
 

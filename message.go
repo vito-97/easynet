@@ -1,12 +1,11 @@
 package easynet
 
 type IMessage interface {
-	GetType() uint32
+	Type() uint32
 	SetType(t uint32)
-	GetData() []byte
+	Data() []byte
 	SetData(b []byte)
-	GetRawData() []byte
-	GetLength() uint32
+	Length() uint32
 	SetLength(len uint32)
 }
 
@@ -28,19 +27,15 @@ func (m *Message) SetLength(len uint32) {
 	m.len = len
 }
 
-func (m *Message) GetType() uint32 {
+func (m *Message) Type() uint32 {
 	return m.t
 }
 
-func (m *Message) GetData() []byte {
+func (m *Message) Data() []byte {
 	return m.data
 }
 
-func (m *Message) GetRawData() []byte {
-	return m.data
-}
-
-func (m *Message) GetLength() uint32 {
+func (m *Message) Length() uint32 {
 	return m.len
 }
 
