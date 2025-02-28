@@ -23,49 +23,20 @@ type IServer interface {
 	ConnectionManager() IConnectionManager
 
 	SetOnConnStart(callbacks ...ConnCallback)
-	GetOnConnStart() []ConnCallback
+	OnConnStart() []ConnCallback
 	SetOnConnStop(callbacks ...ConnCallback)
-	GetOnConnStop() []ConnCallback
+	OnConnStop() []ConnCallback
 
 	Context() context.Context
 
 	DataPack() IDataPack
 	Decode() IDecode
 	FrameDecode() IFrameDecode
-	SetDataPack(dp IDataPack)
-	SetDecode(dc IDecode)
-	SetFrameDecode(fd IFrameDecode)
 
 	RouterManager() IRouterManager
 }
 
-type ServerOptionFunc = func(s *ServerOption)
-
-type ServerOption struct {
-	Name string
-
-	IP   string
-	Port int
-
-	// 路由管理
-	RouterManager IRouterManager
-	ConnMgr       IConnectionManager
-
-	Worker IWorker
-
-	OnConnStart []ConnCallback
-	OnConnStop  []ConnCallback
-
-	Ctx    context.Context
-	Cancel context.CancelFunc
-
-	//接受到消息先处理的方法
-	Handlers HandlersChain
-
-	DataPack    IDataPack
-	Decode      IDecode
-	FrameDecode IFrameDecode
-}
+type ServerOption = func(s *Server)
 
 type Server struct {
 	Switch
@@ -194,7 +165,7 @@ func (s *Server) SetOnConnStart(callbacks ...ConnCallback) {
 	}
 }
 
-func (s *Server) GetOnConnStart() []ConnCallback {
+func (s *Server) OnConnStart() []ConnCallback {
 	return s.onConnStart
 }
 
@@ -204,7 +175,7 @@ func (s *Server) SetOnConnStop(callbacks ...ConnCallback) {
 	}
 }
 
-func (s *Server) GetOnConnStop() []ConnCallback {
+func (s *Server) OnConnStop() []ConnCallback {
 	return s.onConnStop
 }
 
@@ -220,18 +191,6 @@ func (s *Server) FrameDecode() IFrameDecode {
 	return s.fd
 }
 
-func (s *Server) SetDataPack(dp IDataPack) {
-	s.dp = dp
-}
-
-func (s *Server) SetDecode(dc IDecode) {
-	s.dc = dc
-}
-
-func (s *Server) SetFrameDecode(fd IFrameDecode) {
-	s.fd = fd
-}
-
 func (s *Server) Context() context.Context {
 	return s.ctx
 }
@@ -244,77 +203,55 @@ func (s *Server) RouterManager() IRouterManager {
 	return s
 }
 
-func New(optionFunc ...ServerOptionFunc) *Server {
+func New(optionFunc ...ServerOption) *Server {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	opts := &ServerOption{
-		Name:   GlobalConfig.Name,
-		IP:     GlobalConfig.Host,
-		Port:   GlobalConfig.Port,
-		Ctx:    ctx,
-		Cancel: cancelFunc,
+	s := &Server{
+		name:   GlobalConfig.Name,
+		ip:     GlobalConfig.Host,
+		port:   GlobalConfig.Port,
+		ctx:    ctx,
+		cancel: cancelFunc,
 	}
 
 	for _, fn := range optionFunc {
-		fn(opts)
+		fn(s)
 	}
 
-	if opts.RouterManager == nil {
-		opts.RouterManager = newRouterManager()
+	if s.IRouterManager == nil {
+		s.IRouterManager = newRouterManager()
 	}
 
-	if opts.Worker == nil {
-		opts.Worker = newWorker(opts.RouterManager, opts.Ctx)
+	if s.worker == nil {
+		s.worker = newWorker(s.ctx, s.IRouterManager)
 	}
 
-	if opts.Decode == nil {
-		opts.Decode = NewTLVDecoder()
+	if s.dc == nil {
+		s.dc = NewTLVDecoder()
 	}
 
-	if opts.FrameDecode == nil {
-		opts.FrameDecode = NewFrameDecode(*opts.Decode.LengthField())
+	if s.fd == nil {
+		s.fd = NewFrameDecode(*s.dc.LengthField())
 	}
 
-	if opts.DataPack == nil {
-		opts.DataPack = NewDataPack()
+	if s.dp == nil {
+		s.dp = NewDataPack()
 	}
 
-	//读取数据中间件
-	if opts.Decode != nil {
-		opts.Handlers = append(opts.Handlers, opts.Decode.Handler())
-	}
-
-	s := &Server{
-		name:           opts.Name,
-		ip:             opts.IP,
-		port:           opts.Port,
-		worker:         opts.Worker,
-		IRouterManager: opts.RouterManager,
-		onConnStart:    opts.OnConnStart,
-		onConnStop:     opts.OnConnStop,
-		ctx:            opts.Ctx,
-		cancel:         opts.Cancel,
-		dp:             opts.DataPack,
-		dc:             opts.Decode,
-		fd:             opts.FrameDecode,
-	}
-
-	if opts.ConnMgr == nil {
+	if s.connMgr == nil {
 		s.connMgr = newConnectionManager(s)
-	} else {
-		s.connMgr = opts.ConnMgr
 	}
 
 	// 断开连接时把保存在连接管理中的连接移除
 	s.SetOnConnStop(s.stopConn)
 
 	//设置worker调度前调用的方法
-	s.worker.WithHandler(opts.Handlers...)
+	s.worker.WithHandler(s.dc.Handler())
 
 	return s
 }
 
-func Default(opts ...ServerOptionFunc) *Server {
+func DefaultServer(opts ...ServerOption) *Server {
 	s := New(opts...)
 
 	s.Use(Logger(), Recovery())
@@ -322,20 +259,80 @@ func Default(opts ...ServerOptionFunc) *Server {
 	return s
 }
 
-func ServerWithIP(ip string) ServerOptionFunc {
-	return func(c *ServerOption) {
-		c.IP = ip
+func ServerWithIP(ip string) ServerOption {
+	return func(c *Server) {
+		c.ip = ip
 	}
 }
 
-func ServerWithPort(port int) ServerOptionFunc {
-	return func(c *ServerOption) {
-		c.Port = port
+func ServerWithPort(port int) ServerOption {
+	return func(c *Server) {
+		c.port = port
 	}
 }
 
-func ServerWithName(name string) ServerOptionFunc {
-	return func(c *ServerOption) {
-		c.Name = name
+func ServerWithName(name string) ServerOption {
+	return func(c *Server) {
+		c.name = name
+	}
+}
+
+func ServerWithRouterManager(routerMgr IRouterManager) ServerOption {
+	return func(c *Server) {
+		c.IRouterManager = routerMgr
+	}
+}
+
+func ServerWithWorker(worker IWorker) ServerOption {
+	return func(c *Server) {
+		c.worker = worker
+	}
+}
+
+func ServerWithConnMgr(connMgr IConnectionManager) ServerOption {
+	return func(c *Server) {
+		c.connMgr = connMgr
+	}
+}
+
+func ServerWithDecode(dc IDecode) ServerOption {
+	return func(c *Server) {
+		c.dc = dc
+	}
+}
+
+func ServerWithFrameDecode(fd IFrameDecode) ServerOption {
+	return func(c *Server) {
+		c.fd = fd
+	}
+}
+
+func ServerWithDataPack(dp IDataPack) ServerOption {
+	return func(c *Server) {
+		c.dp = dp
+	}
+}
+
+func ServerWithOnConnStart(callbacks ...ConnCallback) ServerOption {
+	return func(c *Server) {
+		c.onConnStart = callbacks
+	}
+}
+
+func ServerWithOnConnStop(callbacks ...ConnCallback) ServerOption {
+	return func(c *Server) {
+		c.onConnStop = callbacks
+	}
+}
+
+func ServerWithContext(ctx context.Context) ServerOption {
+	return func(c *Server) {
+		c.ctx = ctx
+	}
+}
+
+func ServerWithCancel(cancel context.CancelFunc) ServerOption {
+	return func(c *Server) {
+		c.cancel = cancel
 	}
 }

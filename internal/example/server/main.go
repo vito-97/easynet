@@ -12,16 +12,14 @@ const (
 )
 
 func main() {
-	r := easynet.Default(func(s *easynet.ServerOption) {
-		s.OnConnStart = append(s.OnConnStart, func(connection easynet.IConnection) {
-			go func() {
-				for !connection.IsStopped() {
-					connection.SendMsg(PingType, []byte("hello client"))
-					time.Sleep(time.Second)
-				}
-			}()
-		})
-	})
+	r := easynet.DefaultServer(easynet.ServerWithOnConnStart(func(connection easynet.IConnection) {
+		go func() {
+			for !connection.IsStopped() {
+				connection.SendMsg(PingType, []byte("hello client"))
+				time.Sleep(time.Second)
+			}
+		}()
+	}))
 
 	r.Use(func(req easynet.IRequest) {
 		log.Println("global middleware")

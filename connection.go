@@ -339,8 +339,8 @@ func newConnection(server IServer, id uint64, conn net.Conn) *Connection {
 	ctx, cancelFunc := context.WithCancel(server.Context())
 
 	c.dp = server.DataPack()
-	c.onConnStart = server.GetOnConnStart()
-	c.onConnStop = server.GetOnConnStop()
+	c.onConnStart = server.OnConnStart()
+	c.onConnStop = server.OnConnStop()
 	c.ctx = ctx
 	c.cancel = cancelFunc
 
@@ -351,10 +351,10 @@ func newClientConnection(client IClient, conn net.Conn) *Connection {
 	c := &Connection{
 		name:   client.Name(),
 		conn:   conn,
-		worker: client.GetWorker(),
+		worker: client.Worker(),
 	}
 
-	frameDecode := client.GetFrameDecode()
+	frameDecode := client.FrameDecode()
 
 	if frameDecode != nil {
 		c.fd = frameDecode.New()
@@ -362,9 +362,9 @@ func newClientConnection(client IClient, conn net.Conn) *Connection {
 
 	ctx, cancelFunc := context.WithCancel(client.Context())
 
-	c.dp = client.GetDataPack()
-	c.onConnStart = client.GetOnConnStart()
-	c.onConnStop = client.GetOnConnStop()
+	c.dp = client.DataPack()
+	c.onConnStart = client.OnConnStart()
+	c.onConnStop = client.OnConnStop()
 	c.ctx = ctx
 	c.cancel = cancelFunc
 

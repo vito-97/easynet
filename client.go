@@ -17,48 +17,22 @@ type IClient interface {
 	Conn() IConnection
 
 	SetOnConnStart(callbacks ...ConnCallback)
-	GetOnConnStart() []ConnCallback
+	OnConnStart() []ConnCallback
 	SetOnConnStop(callbacks ...ConnCallback)
-	GetOnConnStop() []ConnCallback
+	OnConnStop() []ConnCallback
 
-	GetWorker() IWorker
+	Worker() IWorker
 
 	Context() context.Context
 
-	GetDataPack() IDataPack
-	GetDecode() IDecode
-	GetFrameDecode() IFrameDecode
-	SetDataPack(dp IDataPack)
-	SetDecode(dc IDecode)
-	SetFrameDecode(fd IFrameDecode)
+	DataPack() IDataPack
+	Decode() IDecode
+	FrameDecode() IFrameDecode
 
-	GetRouterManager() IRouterManager
+	RouterManager() IRouterManager
 }
 
-type ClientOptionFunc = func(c *ClientOption)
-
-type ClientOption struct {
-	Name    string
-	IP      string
-	TCPPort int
-
-	RouterManager IRouterManager
-
-	Worker IWorker
-
-	OnConnStart []ConnCallback
-	OnConnStop  []ConnCallback
-
-	Ctx    context.Context
-	Cancel context.CancelFunc
-
-	//接受到消息先处理的方法
-	Handlers HandlersChain
-
-	DataPack    IDataPack
-	Decode      IDecode
-	FrameDecode IFrameDecode
-}
+type ClientOption = func(c *Client)
 
 type Client struct {
 	Switch
@@ -67,8 +41,8 @@ type Client struct {
 
 	conn IConnection
 
-	IP      string
-	TCPPort int
+	ip   string
+	port int
 
 	// 路由管理
 	IRouterManager
@@ -114,7 +88,7 @@ func (c *Client) Restart() {
 }
 
 func (c *Client) start() {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", c.IP, c.TCPPort))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", c.ip, c.port))
 
 	if err != nil {
 		panic(fmt.Sprintf("client name [%s] listen error:%v", c.name, err))
@@ -167,7 +141,7 @@ func (c *Client) SetOnConnStart(callbacks ...ConnCallback) {
 	}
 }
 
-func (c *Client) GetOnConnStart() []ConnCallback {
+func (c *Client) OnConnStart() []ConnCallback {
 	return c.onConnStart
 }
 
@@ -177,11 +151,11 @@ func (c *Client) SetOnConnStop(callbacks ...ConnCallback) {
 	}
 }
 
-func (c *Client) GetOnConnStop() []ConnCallback {
+func (c *Client) OnConnStop() []ConnCallback {
 	return c.onConnStop
 }
 
-func (c *Client) GetWorker() IWorker {
+func (c *Client) Worker() IWorker {
 	return c.worker
 }
 
@@ -189,35 +163,22 @@ func (c *Client) Context() context.Context {
 	return c.ctx
 }
 
-func (c *Client) GetDataPack() IDataPack {
+func (c *Client) DataPack() IDataPack {
 	return c.dp
 }
 
-func (c *Client) GetDecode() IDecode {
+func (c *Client) Decode() IDecode {
 	return c.dc
 }
 
-func (c *Client) GetFrameDecode() IFrameDecode {
+func (c *Client) FrameDecode() IFrameDecode {
 	return c.fd
 }
-
-func (c *Client) SetDataPack(dp IDataPack) {
-	c.dp = dp
-}
-
-func (c *Client) SetDecode(dc IDecode) {
-	c.dc = dc
-}
-
-func (c *Client) SetFrameDecode(fd IFrameDecode) {
-	c.fd = fd
-}
-
-func (c *Client) GetRouterManager() IRouterManager {
+func (c *Client) RouterManager() IRouterManager {
 	return c
 }
 
-func DefaultClient(opts ...ClientOptionFunc) IClient {
+func DefaultClient(opts ...ClientOption) IClient {
 	c := NewClient(opts...)
 
 	c.Use(Logger(), Recovery())
@@ -225,63 +186,43 @@ func DefaultClient(opts ...ClientOptionFunc) IClient {
 	return c
 }
 
-func NewClient(optionFunc ...ClientOptionFunc) IClient {
+func NewClient(optionFunc ...ClientOption) IClient {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	opts := &ClientOption{
-		Name:    GlobalConfig.ClientName,
-		IP:      GlobalConfig.Host,
-		TCPPort: GlobalConfig.Port,
-		Ctx:     ctx,
-		Cancel:  cancelFunc,
+	c := &Client{
+		name:   GlobalConfig.ClientName,
+		ip:     GlobalConfig.Host,
+		port:   GlobalConfig.Port,
+		ctx:    ctx,
+		cancel: cancelFunc,
 	}
 
 	for _, fn := range optionFunc {
-		fn(opts)
+		fn(c)
 	}
 
-	if opts.RouterManager == nil {
-		opts.RouterManager = newRouterManager()
+	if c.IRouterManager == nil {
+		c.IRouterManager = newRouterManager()
 	}
 
-	if opts.Worker == nil {
-		opts.Worker = newWorker(opts.RouterManager, opts.Ctx, 0)
+	if c.worker == nil {
+		c.worker = newWorker(c.ctx, c.IRouterManager, 0)
 	}
 
-	if opts.Decode == nil {
-		opts.Decode = NewTLVDecoder()
+	if c.dc == nil {
+		c.dc = NewTLVDecoder()
 	}
 
-	if opts.FrameDecode == nil {
-		opts.FrameDecode = NewFrameDecode(*opts.Decode.LengthField())
+	if c.fd == nil {
+		c.fd = NewFrameDecode(*c.dc.LengthField())
 	}
 
-	if opts.DataPack == nil {
-		opts.DataPack = NewDataPack()
-	}
-
-	//读取数据中间件
-	if opts.Decode != nil {
-		opts.Handlers = append(opts.Handlers, opts.Decode.Handler())
-	}
-
-	c := &Client{
-		name:           opts.Name,
-		IP:             opts.IP,
-		TCPPort:        opts.TCPPort,
-		IRouterManager: opts.RouterManager,
-		onConnStart:    opts.OnConnStart,
-		onConnStop:     opts.OnConnStop,
-		worker:         opts.Worker,
-		ctx:            opts.Ctx,
-		cancel:         opts.Cancel,
-		dp:             opts.DataPack,
-		dc:             opts.Decode,
-		fd:             opts.FrameDecode,
+	if c.dp == nil {
+		c.dp = NewDataPack()
 	}
 
 	//设置worker调度前调用的方法
-	c.worker.WithHandler(opts.Handlers...)
+	c.worker.WithHandler(c.dc.Handler())
 
 	return c
 }
@@ -290,20 +231,74 @@ func NewClientWithAddress(ip string, port int) IClient {
 	return NewClient(ClientWithIP(ip), ClientWithPort(port))
 }
 
-func ClientWithIP(ip string) ClientOptionFunc {
-	return func(c *ClientOption) {
-		c.IP = ip
+func ClientWithIP(ip string) ClientOption {
+	return func(c *Client) {
+		c.ip = ip
 	}
 }
 
-func ClientWithPort(port int) ClientOptionFunc {
-	return func(c *ClientOption) {
-		c.TCPPort = port
+func ClientWithPort(port int) ClientOption {
+	return func(c *Client) {
+		c.port = port
 	}
 }
 
-func ClientWithName(name string) ClientOptionFunc {
-	return func(c *ClientOption) {
-		c.Name = name
+func ClientWithName(name string) ClientOption {
+	return func(c *Client) {
+		c.name = name
+	}
+}
+
+func ClientWithDataPack(dp IDataPack) ClientOption {
+	return func(c *Client) {
+		c.dp = dp
+	}
+}
+
+func ClientWithDecode(dc IDecode) ClientOption {
+	return func(c *Client) {
+		c.dc = dc
+	}
+}
+
+func ClientWithFrameDecode(fd IFrameDecode) ClientOption {
+	return func(c *Client) {
+		c.fd = fd
+	}
+}
+
+func ClientWithWorker(worker IWorker) ClientOption {
+	return func(c *Client) {
+		c.worker = worker
+	}
+}
+
+func ClientWithOnConnStart(callbacks ...ConnCallback) ClientOption {
+	return func(c *Client) {
+		c.onConnStart = append(c.onConnStart, callbacks...)
+	}
+}
+
+func ClientWithOnConnStop(callbacks ...ConnCallback) ClientOption {
+	return func(c *Client) {
+		c.onConnStop = append(c.onConnStop, callbacks...)
+	}
+}
+
+func ClientWithRouterManager(routerMgr IRouterManager) ClientOption {
+	return func(c *Client) {
+		c.IRouterManager = routerMgr
+	}
+}
+
+func ClientWithContext(ctx context.Context) ClientOption {
+	return func(c *Client) {
+		c.ctx = ctx
+	}
+}
+
+func ClientWithCancel(cancel context.CancelFunc) ClientOption {
+	return func(c *Client) {
+		c.cancel = cancel
 	}
 }

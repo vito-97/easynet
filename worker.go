@@ -219,7 +219,7 @@ func (w *Worker) isHashMode() bool {
 	return w.mode == "" || w.mode == WorkerModeHash
 }
 
-func newWorker(routerMgr IRouterManager, parentCtx context.Context, size ...uint32) *Worker {
+func newWorker(parentCtx context.Context, routerMgr IRouterManager, size ...uint32) *Worker {
 	ctx, cancelFunc := context.WithCancel(parentCtx)
 
 	w := &Worker{

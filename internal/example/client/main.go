@@ -20,25 +20,23 @@ func Debug(req easynet.IRequest) {
 }
 
 func main() {
-	r := easynet.DefaultClient(func(c *easynet.ClientOption) {
-		c.OnConnStart = append(c.OnConnStart, func(connection easynet.IConnection) {
-			connection.SendMsg(HelloType, []byte("hello"))
-			helloData := []byte("hello everyone~！")
-			msg := easynet.NewMessageWithType(HelloType, helloData)
-			pack := easynet.NewDataPack()
+	r := easynet.DefaultClient(easynet.ClientWithOnConnStart(func(connection easynet.IConnection) {
+		connection.SendMsg(HelloType, []byte("hello"))
+		helloData := []byte("hello everyone~！")
+		msg := easynet.NewMessageWithType(HelloType, helloData)
+		pack := easynet.NewDataPack()
 
-			bytes, _ := pack.Pack(msg)
-			b := append(bytes, bytes...)
-			connection.Send(b)
+		bytes, _ := pack.Pack(msg)
+		b := append(bytes, bytes...)
+		connection.Send(b)
 
-			go func() {
-				for !connection.IsStopped() {
-					connection.SendMsg(PingType, []byte("hello server"))
-					time.Sleep(time.Second)
-				}
-			}()
-		})
-	})
+		go func() {
+			for !connection.IsStopped() {
+				connection.SendMsg(PingType, []byte("hello server"))
+				time.Sleep(time.Second)
+			}
+		}()
+	}))
 
 	r.Use(func(req easynet.IRequest) {
 		log.Println("global middleware")
